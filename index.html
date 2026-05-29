@@ -335,7 +335,7 @@
     <span id="error-msg">Impossible de charger le fichier <code>base_oms_optimisee.json</code>. Assurez-vous qu'il est dans le même dossier que ce fichier HTML.</span>
   </div>
 
-  <div class="card" id="main-form" style="display:none;">
+  <div class="card" id="main-form">
     <div class="card-title">Paramètres de mesure</div>
     <div class="grid-3">
       <div>
@@ -426,12 +426,21 @@ function nettoyer(texte) {
 function initialiserApplication() {
   document.getElementById('loading-notice').style.display = 'none';
   document.getElementById('main-form').style.display = 'block';
+  if (!DATA) {
+    document.getElementById('error-notice').style.display = 'flex';
+    document.getElementById('error-msg').textContent = 'Erreur : données OMS introuvables.';
+    return;
+  }
   mettreAJourGroupes();
 }
 
 
 function mettreAJourGroupes() {
-  if (!DATA) return;
+  if (!DATA) {
+    document.getElementById('error-notice').style.display = 'flex';
+    document.getElementById('error-msg').textContent = 'Erreur : données OMS non disponibles. Rechargez la page.';
+    return;
+  }
   const ind = document.getElementById('indicateur').value;
   const sexe = document.getElementById('sexe').value;
   const sel = document.getElementById('groupe');
@@ -594,7 +603,12 @@ document.getElementById('indicateur').addEventListener('change', mettreAJourGrou
 document.getElementById('sexe').addEventListener('change', mettreAJourGroupes);
 document.getElementById('groupe').addEventListener('change', mettreAJourLabels);
 
-initialiserApplication();
+// Initialisation robuste : on s'assure que le DOM est prêt
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initialiserApplication);
+} else {
+  initialiserApplication();
+}
 </script>
 </body>
 </html>
