@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007bff">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calculateur Z-Score OMS</title>
@@ -593,7 +595,13 @@ function calculer() {
 document.getElementById('indicateur').addEventListener('change', mettreAJourGroupes);
 document.getElementById('sexe').addEventListener('change', mettreAJourGroupes);
 document.getElementById('groupe').addEventListener('change', mettreAJourLabels);
-
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => console.log('Service Worker enregistré !', reg))
+      .catch((err) => console.log('Erreur lors de l\'enregistrement :', err));
+  });
+}
 initialiserApplication();
 </script>
 </body>
