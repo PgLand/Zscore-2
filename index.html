@@ -2,7 +2,10 @@
 <html lang="fr">
 <head>
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#007bff">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <meta name="theme-color" content="#1a6fc4">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Calculateur Z-Score OMS</title>
@@ -323,18 +326,18 @@
     </div>
     <div>
       <h1>Calculateur Z-Score OMS</h1>
-      <p>Indicateurs anthropométriques · Courbes de référence OMS 2006</p>
+      <a href="https://www.who.int/tools/child-growth-standards/standards"target="blank">Courbes de référence OMS 2006</a>
     </div>
   </header>
 
-  <div id="loading-notice" class="notice" style="display:none;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 14.93V15h-2v1.93A8.01 8.01 0 0 1 4.07 11H6V9H4.07A8.01 8.01 0 0 1 11 4.07V6h2V4.07A8.01 8.01 0 0 1 19.93 11H18v2h1.93A8.01 8.01 0 0 1 13 16.93z"/></svg>
-    Chargement des tables OMS…
+  <div id="offline-setup-notice" class="notice" style="display:none; border-color:#fde68a; background:#fef3e2; color:#9a5b00;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+    Mode hors-ligne indisponible : ouvrez l'application via un serveur local (<code>demarrer-serveur.bat</code>) et non en double-cliquant sur le fichier HTML.
   </div>
 
-  <div id="error-notice" class="notice" style="display:none; border-color:#fecaca; background:#fef2f2; color:#b91c1c;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-    <span id="error-msg">Impossible de charger le fichier <code>base_oms_optimisee.json</code>. Assurez-vous qu'il est dans le même dossier que ce fichier HTML.</span>
+  <div id="offline-badge" class="notice" style="display:none; border-color:#bae6fd; background:#e0f2fe; color:#0369a1;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+    Mode hors-ligne — l'application fonctionne depuis le cache.
   </div>
 
   <div class="card" id="main-form" style="display:none;">
@@ -426,7 +429,6 @@ function nettoyer(texte) {
   return texte.replace(/_/g, '-').replace(/-(?=[a-zA-Z])/g, ' ').replace(/^./, c => c.toUpperCase());
 }
 function initialiserApplication() {
-  document.getElementById('loading-notice').style.display = 'none';
   document.getElementById('main-form').style.display = 'block';
   mettreAJourGroupes();
 }
@@ -595,13 +597,28 @@ function calculer() {
 document.getElementById('indicateur').addEventListener('change', mettreAJourGroupes);
 document.getElementById('sexe').addEventListener('change', mettreAJourGroupes);
 document.getElementById('groupe').addEventListener('change', mettreAJourLabels);
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then((reg) => console.log('Service Worker enregistré !', reg))
-      .catch((err) => console.log('Erreur lors de l\'enregistrement :', err));
-  });
+function mettreAJourBadgeHorsLigne() {
+  const badge = document.getElementById('offline-badge');
+  if (badge) badge.style.display = navigator.onLine ? 'none' : 'flex';
 }
+
+function enregistrerServiceWorker() {
+  if (location.protocol === 'file:') {
+    const notice = document.getElementById('offline-setup-notice');
+    if (notice) notice.style.display = 'flex';
+    return;
+  }
+  if (!('serviceWorker' in navigator)) return;
+
+  navigator.serviceWorker.register('./sw.js', { scope: './' })
+    .then(() => console.log('Service Worker enregistré'))
+    .catch((err) => console.warn('Erreur Service Worker :', err));
+}
+
+window.addEventListener('load', enregistrerServiceWorker);
+window.addEventListener('online', mettreAJourBadgeHorsLigne);
+window.addEventListener('offline', mettreAJourBadgeHorsLigne);
+mettreAJourBadgeHorsLigne();
 initialiserApplication();
 </script>
 </body>
