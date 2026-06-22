@@ -1,11 +1,16 @@
-const CACHE_NAME = 'zscore-app-v2';
+const CACHE_NAME = 'zscore-app-v3';
 const ASSETS = ['./index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      Promise.allSettled(ASSETS.map((url) => cache.add(url)))
+      Promise.allSettled(
+        ASSETS.map(async (url) => {
+          const response = await fetch(url);
+          if (response.ok) await cache.put(url, response);
+        })
+      )
     )
   );
 });
