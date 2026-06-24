@@ -289,6 +289,73 @@
       margin-bottom: 1rem;
     }
 
+    .install-card {
+      border-color: var(--blue-mid);
+      background: linear-gradient(180deg, #f8fbff 0%, var(--surface) 100%);
+    }
+
+    .install-card .install-intro {
+      font-size: 0.88rem;
+      color: var(--text);
+      line-height: 1.55;
+      margin-bottom: 1rem;
+    }
+
+    .install-steps {
+      margin: 0 0 1rem 1.1rem;
+      font-size: 0.86rem;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .install-steps li { margin-bottom: 0.35rem; }
+
+    .install-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0.7rem 1.1rem;
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-bottom: 0.75rem;
+    }
+
+    .install-btn:hover { background: #155fa0; }
+
+    .install-btn-secondary {
+      background: var(--surface2);
+      color: var(--blue);
+      border: 1px solid var(--blue-mid);
+    }
+
+    .install-btn-secondary:hover { background: var(--blue-light); }
+
+    .install-status {
+      font-size: 0.8rem;
+      color: var(--green);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      min-height: 1.2em;
+    }
+
+    .install-dismiss {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: underline;
+      font-family: inherit;
+    }
+
     .range-error {
       margin-top: 5px;
       font-size: 0.76rem;
@@ -332,9 +399,45 @@
     </div>
   </header>
 
+  <div id="install-guide" class="card install-card" style="display:none;">
+    <div class="card-title">Utiliser sans connexion Internet</div>
+    <p class="install-intro">
+      <strong>Important :</strong> ouvrez cette page <strong>une fois avec une connexion Internet</strong>,
+      puis installez l'application sur votre appareil. Ensuite, ouvrez-la via <strong>son icône</strong>
+      (écran d'accueil), pas via le lien du navigateur.
+    </p>
+
+    <div id="install-panel-chrome" style="display:none;">
+      <button type="button" id="install-btn" class="install-btn">
+        Installer l'application
+      </button>
+    </div>
+
+    <div id="install-panel-ios" style="display:none;">
+      <ol class="install-steps">
+        <li>Appuyez sur <strong>Partager</strong> (icône en bas de Safari)</li>
+        <li>Choisissez <strong>Sur l'écran d'accueil</strong></li>
+        <li>Appuyez sur <strong>Ajouter</strong>, puis ouvrez l'app via son icône</li>
+      </ol>
+      <button type="button" id="install-ios-done" class="install-btn install-btn-secondary">
+        J'ai ajouté à l'écran d'accueil
+      </button>
+    </div>
+
+    <div id="install-panel-generic" style="display:none;">
+      <p class="install-intro" style="margin-bottom:0.75rem;">
+        Ouvrez le menu du navigateur (⋮ ou ⋯) et choisissez
+        <strong>« Installer l'application »</strong> ou <strong>« Ajouter à l'écran d'accueil »</strong>.
+      </p>
+    </div>
+
+    <p id="install-sw-status" class="install-status"></p>
+    <button type="button" id="install-dismiss" class="install-dismiss">Masquer ce message</button>
+  </div>
+
   <div id="offline-setup-notice" class="notice" style="display:none; border-color:#fde68a; background:#fef3e2; color:#9a5b00;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-    Mode hors-ligne indisponible : ouvrez l'application via un serveur local (<code>demarrer-serveur.bat</code>) et non en double-cliquant sur le fichier HTML.
+    Ouverture locale : le calculateur fonctionne sans connexion. Pour installer l'application sur votre téléphone, ouvrez le lien en ligne une fois avec Internet.
   </div>
 
   <div id="offline-badge" class="notice" style="display:none; border-color:#bae6fd; background:#e0f2fe; color:#0369a1;">
@@ -648,6 +751,70 @@ function calculer() {
 document.getElementById('indicateur').addEventListener('change', mettreAJourGroupes);
 document.getElementById('sexe').addEventListener('change', mettreAJourGroupes);
 document.getElementById('groupe').addEventListener('change', mettreAJourLabels);
+let deferredInstallPrompt = null;
+
+function estAppInstallee() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function estIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function masquerGuideInstallation() {
+  localStorage.setItem('zscore-install-done', '1');
+  const guide = document.getElementById('install-guide');
+  if (guide) guide.style.display = 'none';
+}
+
+function initialiserGuideInstallation() {
+  const guide = document.getElementById('install-guide');
+  if (!guide || location.protocol === 'file:') return;
+
+  if (estAppInstallee() || localStorage.getItem('zscore-install-done') === '1') {
+    guide.style.display = 'none';
+    return;
+  }
+
+  guide.style.display = 'block';
+
+  const panelChrome = document.getElementById('install-panel-chrome');
+  const panelIos = document.getElementById('install-panel-ios');
+  const panelGeneric = document.getElementById('install-panel-generic');
+
+  if (estIOS()) {
+    panelIos.style.display = 'block';
+    panelGeneric.style.display = 'none';
+    panelChrome.style.display = 'none';
+  } else {
+    panelGeneric.style.display = 'block';
+    panelIos.style.display = 'none';
+    panelChrome.style.display = 'none';
+  }
+
+  document.getElementById('install-dismiss')?.addEventListener('click', masquerGuideInstallation);
+  document.getElementById('install-ios-done')?.addEventListener('click', masquerGuideInstallation);
+  document.getElementById('install-btn')?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (outcome === 'accepted') masquerGuideInstallation();
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (estIOS()) return;
+  document.getElementById('install-panel-generic').style.display = 'none';
+  document.getElementById('install-panel-chrome').style.display = 'block';
+});
+
+window.addEventListener('appinstalled', masquerGuideInstallation);
+
 function mettreAJourBadgeHorsLigne() {
   const badge = document.getElementById('offline-badge');
   if (badge) badge.style.display = navigator.onLine ? 'none' : 'flex';
@@ -662,11 +829,20 @@ function enregistrerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
   navigator.serviceWorker.register('./sw.js', { scope: './' })
-    .then(() => console.log('Service Worker enregistré'))
+    .then(() => navigator.serviceWorker.ready)
+    .then(() => {
+      const status = document.getElementById('install-sw-status');
+      if (status && !estAppInstallee()) {
+        status.textContent = 'Contenu prêt — installez l\'application pour utiliser sans connexion.';
+      }
+    })
     .catch((err) => console.warn('Erreur Service Worker :', err));
 }
 
-window.addEventListener('load', enregistrerServiceWorker);
+window.addEventListener('load', () => {
+  initialiserGuideInstallation();
+  enregistrerServiceWorker();
+});
 window.addEventListener('online', mettreAJourBadgeHorsLigne);
 window.addEventListener('offline', mettreAJourBadgeHorsLigne);
 mettreAJourBadgeHorsLigne();

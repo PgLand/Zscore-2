@@ -1,6 +1,7 @@
 {
-  "name": "Z-Score Calc Médical",
-  "short_name": "Z-Score",
+  "name": "Calculateur Z-Score OMS",
+  "short_name": "Z-Score OMS",
+  "description": "Calculateur de z-scores nutritionnels OMS, utilisable hors ligne après installation.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -12,6 +13,12 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
