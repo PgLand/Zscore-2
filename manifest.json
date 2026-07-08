@@ -1,7 +1,7 @@
 {
   "name": "Calculateur Z-Score OMS",
   "short_name": "Z-Score OMS",
-  "description": "Calculateur de z-scores nutritionnels OMS, utilisable hors ligne après installation.",
+  "description": "Calculateur de z-scores nutritionnels OMS et de surface corporelle pédiatrique, utilisable hors ligne après installation.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
